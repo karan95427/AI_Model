@@ -2,11 +2,14 @@ import speech_recognition as sr
 import win32com.client
 import webbrowser
 import os
+import json
 import time
 import random
+import requests
+import pywhatkit
 import urllib.parse
 import google.generativeai as genai
-from config import API_KEY
+from config import API_KEY , WEATHER_KEY
 
 chatStr =""
 def chat(query):
@@ -67,7 +70,26 @@ def ai(prompt):
     print("Error: Response object has no attribute 'text'")
     return None
 
-  
+def get_weather(city):
+    base_url="http://api.openweathermap.org/data/2.5/weather?"
+    params={
+       "q":city,
+        "appid":WEATHER_KEY,
+        "units":"metric"
+    }
+    response=requests.get(base_url,params=params)
+    if response.status_code==200:
+       data=response.json()
+       weather_desc= data["weather"][0]["description"]
+       temp= data["main"]["temp"]
+       return f"The weather in {city} is {weather_desc}  with a temperature of {temp} degrees celsius."
+    else:
+        return "Sorry, I couldn't get the weather for that location."
+
+def play_music(song_name):
+   say(f"Searching for {song_name} on YouTube...")
+   pywhatkit.playonyt(song_name)
+   
 
 def say(text):
    speaker =win32com.client.Dispatch("SAPI.SpVoice")
@@ -103,11 +125,6 @@ if __name__ == '__main__':
       if query:
         if "ok" in query:
             exit()
-             
-        elif f"open music" in query:
-                 path="\\Desktop\\flute-traditional-v1-251387.mp3"
-                 say(f"opening music sir...")
-                 os.startfile(path)
                  
         elif f"the time" in query:
                  realtime=time.strftime("%H:%M:%S")
@@ -140,6 +157,21 @@ if __name__ == '__main__':
               google_search(new_query)
             else:
               say("I didn't hear a search term.")
+
+        elif "weather in" in query:
+           city=query.replace("weather in","").strip()
+           if city:
+              say(f'checking the weather in {city}.....')
+              weather_info=get_weather(city)
+              say(weather_info)
+              print(weather_info)
+              
+        elif "play" in query and "music" in query:
+           song_name = query.replace("play", "").replace("music", "").strip()
+           if song_name:
+              play_music(song_name)
+           else:
+              say("please specify a song name.  ")
                  
         else:
             print("chatting...")
