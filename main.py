@@ -4,6 +4,7 @@ import webbrowser
 import os
 import time
 import random
+import urllib.parse
 import google.generativeai as genai
 from config import API_KEY
 
@@ -12,7 +13,6 @@ def chat(query):
   global chatStr
   print(chatStr)
   api_key = API_KEY 
-  chatStr += f"Karan: {query}\n Jarvis: "
   if api_key is None:
     raise ValueError("API key not found. Please set the GEMINI_API_KEY environment variable.")
 
@@ -20,15 +20,26 @@ def chat(query):
   genai.configure(api_key=api_key)
 
 
-  model = genai.GenerativeModel("gemini-pro")
+  model = genai.GenerativeModel("gemini-1.5-pro")
 
 
-  response = model.generate_content(chatStr)
+  response = model.generate_content(query)
+  if response and hasattr(response, "text"):
+     say(response.text)
+     print(f"Jarvis: {response.text}") 
+     return response.text
+  else:
+        say("I couldn't generate a response.")
+        return None
 
-  say(response.text)
-  chatStr += f"{response.text}\n"
-  return response
+def google_search(query):
+   
+   base_url="https://www.google.com/search?q="
+   search_url=base_url+urllib.parse.quote(query)
+   webbrowser.open(search_url)
 
+   say(f"Searching Google for {query}")
+   print(f"Opening Google search: {search_url}")
 
  
 def ai(prompt):
@@ -39,7 +50,7 @@ def ai(prompt):
 
   genai.configure(api_key=api_key)
 
-  model = genai.GenerativeModel("gemini-pro")
+  model = genai.GenerativeModel("gemini-1.5-pro")
   try:
     response = model.generate_content(prompt)
     text += response.text
@@ -89,17 +100,11 @@ if __name__ == '__main__':
     say("Hello sir, how may i help you?")
     while True:
       query = takeCommand()
-      site=[["youtube" , "https://www.youtube.com/"],["google" , "https://www.google.com/"],["wikipedia","https://en.wikipedia.org/wiki/Main_Page"] ,["hotstar","https://jiohotstar.com/"]]
       if query:
         if "ok" in query:
             exit()
-          
-        for s in site:
-             if f"open {s[0]}" in query:
-                say(f"opening {s[0]}  sir...")
-                webbrowser.open(s[1])
-                
-        if f"open music" in query:
+             
+        elif f"open music" in query:
                  path="\\Desktop\\flute-traditional-v1-251387.mp3"
                  say(f"opening music sir...")
                  os.startfile(path)
@@ -123,10 +128,19 @@ if __name__ == '__main__':
                     say("I didn't hear a prompt.")
         elif "reset chat".lower() in query.lower():
             chatStr = ""
+        
+        elif "search for" in query or "google" in query:
+          search_term=query.replace("search for","").replace("google","").strip()
+          if search_term:
+            google_search(search_term)
+          else:
+            say("What do you want me to search for?")
+            new_query = takeCommand()
+            if new_query:
+              google_search(new_query)
+            else:
+              say("I didn't hear a search term.")
                  
         else:
             print("chatting...")
             chat(query)
-
-
-
